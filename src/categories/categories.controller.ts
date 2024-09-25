@@ -64,7 +64,7 @@ export class CategoriesController {
 
     return {
       success: true,
-      message: `Category with the id ${category.name} getted successfully`,
+      message: `Category with the id ${category.category.name} getted successfully`,
       data: category,
     };
   }

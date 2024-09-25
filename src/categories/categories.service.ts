@@ -5,6 +5,11 @@ import { Category, CategoryDocument } from 'src/models/Category.model';
 import { CreateCategoryDTO } from './DTOS/CreateCategory.dto';
 import { UpdateCategoryDTO } from './DTOS/UpdateCategory.dto';
 
+export interface CATEGORYRESPONSEIF {
+  category: CategoryDocument;
+  relatedCategories: CategoryDocument[];
+}
+
 @Injectable()
 export class CategoriesService {
   constructor(
@@ -92,7 +97,7 @@ export class CategoriesService {
 
   //SECTION - CATEGORY DETAILS
   //TODO - DISPLAY CATEGORY DETAILS
-  async getCategory(id: string): Promise<any> {
+  async getCategory(id: string): Promise<CATEGORYRESPONSEIF> {
     const category = await this.categoryModel
       .findById(id)
       .populate('children')
@@ -100,6 +105,18 @@ export class CategoriesService {
     if (!category) {
       throw new NotFoundException('Category not found');
     }
-    return category;
+    let relatedCategories = [];
+    const { parent } = category; // get parent name of the category
+    // if found parent
+    if (parent) {
+      const parentCategory = await this.categoryModel
+        .findOne({ name: parent })
+        .populate('children')
+        .exec();
+      relatedCategories = parentCategory.children.filter(
+        (cateId) => cateId.name !== category.name,
+      );
+    }
+    return { category, relatedCategories };
   }
 }
