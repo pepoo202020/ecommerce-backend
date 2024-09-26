@@ -45,7 +45,11 @@ export class CategoriesController {
   @Delete(':category_id')
   async deleteCategory(@Param('category_id') id: string) {
     await this.categoriesService.deleteCategory(id);
-    return { success: true, message: 'Category deleted successfully' };
+    return {
+      success: true,
+      message: 'Category deleted successfully',
+      data: null,
+    };
   }
 
   @Get()

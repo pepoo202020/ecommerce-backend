@@ -3,9 +3,11 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
-import { map } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
 
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
@@ -15,16 +17,31 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
         const response = context.switchToHttp().getResponse();
         const statusCode = response.statusCode;
 
+        // Construct the standardized response format
         return {
           success:
             data?.success !== undefined
               ? data.success
               : statusCode >= 200 && statusCode < 300,
-          message: data?.message || 'Request successful', // Default message if not provided
-          records: data?.data.length || 0,
-          data: data?.data !== undefined ? data.data : null, // Check if data object exists, otherwise fallback to entire response
-          statusCode: statusCode, // The HTTP status code
+          message: data?.message || 'Request successful',
+          records: Array.isArray(data?.data) ? data.data.length : 0, // Only count if data is an array
+          data: data?.data !== undefined ? data.data : null, // Handle cases where no data is provided
+          statusCode: statusCode,
         };
+      }),
+      // Handle errors and return a proper response
+      catchError((err) => {
+        const statusCode =
+          err instanceof HttpException
+            ? err.getStatus()
+            : HttpStatus.INTERNAL_SERVER_ERROR;
+
+        return throwError(() => ({
+          success: false,
+          message: err.message || 'Internal server error',
+          data: null,
+          statusCode: statusCode,
+        }));
       }),
     );
   }
